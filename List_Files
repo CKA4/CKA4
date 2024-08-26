@@ -1,0 +1,126 @@
+#include <iostream>
+#include <filesystem>
+
+#include <map>
+#include <string>
+#include <algorithm>
+
+namespace fs = std::filesystem;
+
+enum class MenuOption {
+    LIST_FILES = 1,
+    CREATE_DIRECTORY,
+    EXIT
+};
+
+enum class ListFilesOption {
+    ALL_FILES = 1,
+    BY_EXTENSION,
+    BY_NAME
+};
+
+void listFiles(ListFilesOption option) {
+    std::vector<fs::directory_entry> files;
+    try {
+        for (const auto& entry : fs::directory_iterator(fs::current_path())) {
+            files.push_back(entry);
+        }
+
+        if (option == ListFilesOption::ALL_FILES) {
+            for (const auto& file : files) {
+                std::cout << file.path().filename().string() << std::endl;
+            }
+            std::cout << "Total Files: " << files.size() << std::endl;
+        } else if (option == ListFilesOption::BY_EXTENSION) {
+            std::map<std::string, std::vector<std::string>> extMap;
+            for (const auto& file : files) {
+                std::string ext = file.path().extension().string();
+                extMap[ext].push_back(file.path().filename().string());
+            }
+            for (const auto& pair : extMap) {
+                std::cout << "Extension " << pair.first << ":" << std::endl;
+                for (const auto& name : pair.second) {
+                    std::cout << "  " << name << std::endl;
+                }
+            }
+        } else if (option == ListFilesOption::BY_NAME) {
+            std::sort(files.begin(), files.end(), [](const fs::directory_entry& a, const fs::directory_entry& b) {
+                return a.path().filename().string() < b.path().filename().string();
+            });
+            for (const auto& file : files) {
+                std::cout << file.path().filename().string() << std::endl;
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}
+
+void createDirectory() {
+    std::string dirname;
+    std::cout << "Enter the name of the new directory: ";
+    std::cin >> dirname;
+
+    try {
+        if (fs::create_directory(dirname)) {
+            std::cout << "Directory '" << dirname << "' created successfully." << std::endl;
+        } else {
+            std::cout << "Directory '" << dirname << "' already exists or cannot be created." << std::endl;
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}
+
+void changeDirectory() {
+    std::string dirname;
+    std::cout << "Enter the path to the new directory: ";
+    std::cin >> dirname;
+
+    try {
+        fs::current_path(dirname);
+        std::cout << "Changed working directory to '" << dirname << "'." << std::endl;
+    } catch (const fs::filesystem_error& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    while (true) {
+        std::cout << "1. To Display List of Files" << std::endl;
+        std::cout << "2. To Create New Directory" << std::endl;
+        std::cout << "3. To Change the Working Directory" << std::endl;
+        std::cout << "4. Exit" << std::endl;
+        std::cout << "Enter the Number: ";
+
+        int choice;
+        std::cin >> choice;
+
+        if (choice == static_cast<int>(MenuOption::LIST_FILES)) {
+            std::cout << "LIST FILE DETAIL" << std::endl;
+            std::cout << "1. List All Files" << std::endl;
+            std::cout << "2. List of Extension Files" << std::endl;
+            std::cout << "3. List of Name Wise" << std::endl;
+            std::cout << "Enter the Number: ";
+
+            int detailChoice;
+            std::cin >> detailChoice;
+            listFiles(static_cast<ListFilesOption>(detailChoice));
+        } else if (choice == static_cast<int>(MenuOption::CREATE_DIRECTORY)) {
+            createDirectory();
+        } else if (choice == static_cast<int>(MenuOption::CHANGE_DIRECTORY)) {
+            changeDirectory();
+        } else if (choice == static_cast<int>(MenuOption::EXIT)) {
+            std::cout << "Exiting..." << std::endl;
+            break;
+        } else {
+            std::cout << "Invalid choice. Please try again." << std::endl;
+        }
+
+        std::cout << "Press Enter to continue...";
+        std::cin.ignore();
+        std::cin.get();
+    }
+
+    return 0;
+}
